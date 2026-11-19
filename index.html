@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101914">
+<meta name="description" content="Private Pickleball Club Manager">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+<title>Pickleball Club Manager</title>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div><div class="eyebrow">PRIVATE CLUB EDITION</div><h1>PICKLE<span>BALL</span></h1><p>Play fair. Rotate smart.</p></div>
+  <button id="installBtn" class="secondary hidden">Install app</button>
+</header>
+<div id="notice" class="notice hidden"></div>
+<section id="auth">
+
+  <!-- 1. Landing: two separate entry buttons -->
+  <div class="panel auth-view" data-auth-view="landing">
+    <h2>Welcome to your club</h2>
+    <p class="muted">Live scoring, fair rotations and rankings for your private pickleball club.</p>
+    <ul class="features">
+      <li><span aria-hidden="true">🏓</span><div><b>Fair rotation</b><span class="muted small">Everyone gets court time, with fresh partners and opponents.</span></div></li>
+      <li><span aria-hidden="true">⚡</span><div><b>Live scoring</b><span class="muted small">Every member sees the scores update in real time.</span></div></li>
+      <li><span aria-hidden="true">🏆</span><div><b>Rankings &amp; stats</b><span class="muted small">Session leaderboards and personal player profiles.</span></div></li>
+    </ul>
+    <button type="button" class="primary full big" data-go="signin">Sign in</button>
+    <button type="button" class="secondary full big" data-go="signup">Create account</button>
+    <p class="muted small center">Private club &middot; members join by organizer approval</p>
+  </div>
+
+  <!-- 2. Sign in -->
+  <form class="panel auth-view hidden" data-auth-view="signin" id="signInForm" novalidate>
+    <button type="button" class="back" data-go="landing">&larr; Back</button>
+    <h2>Welcome back</h2>
+    <p class="muted">Sign in to your club account.</p>
+    <div class="form-error hidden" role="alert"></div>
+    <label>Email
+      <input id="siEmail" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="you@example.com" required>
+    </label>
+    <label>Password
+      <span class="pw-wrap">
+        <input id="siPassword" type="password" autocomplete="current-password" placeholder="Your password" required>
+        <button type="button" class="pw-toggle" data-toggle-pw="siPassword" aria-label="Show password">Show</button>
+      </span>
+    </label>
+    <div class="between">
+      <label class="check"><input id="siRemember" type="checkbox" checked> Keep me signed in</label>
+      <button type="button" class="link" data-go="reset">Forgot password?</button>
+    </div>
+    <button type="submit" class="primary full big" id="signInBtn">Sign in</button>
+    <p class="switch muted">New to the club? <button type="button" class="link inline" data-go="signup">Create an account</button></p>
+  </form>
+
+  <!-- 3. Create account -->
+  <form class="panel auth-view hidden" data-auth-view="signup" id="signUpForm" novalidate>
+    <button type="button" class="back" data-go="landing">&larr; Back</button>
+    <h2>Create your account</h2>
+    <p class="muted">It takes a minute. Afterwards you can create a club or ask to join one.</p>
+    <div class="form-error hidden" role="alert"></div>
+    <label>Your name
+      <input id="suName" autocomplete="name" maxlength="40" placeholder="First and last name" required>
+    </label>
+    <label>Email
+      <input id="suEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" required>
+    </label>
+    <label>Password
+      <span class="pw-wrap">
+        <input id="suPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" required>
+        <button type="button" class="pw-toggle" data-toggle-pw="suPassword" aria-label="Show password">Show</button>
+      </span>
+    </label>
+    <div class="meter" aria-hidden="true"><i id="pwBar"></i></div>
+    <div class="small muted" id="pwHint">Use 8+ characters. Mix letters, numbers or symbols to make it stronger.</div>
+    <label>Confirm password
+      <span class="pw-wrap">
+        <input id="suConfirm" type="password" autocomplete="new-password" placeholder="Type it again" required>
+        <button type="button" class="pw-toggle" data-toggle-pw="suConfirm" aria-label="Show password">Show</button>
+      </span>
+    </label>
+    <div class="small" id="pwMatch"></div>
+    <button type="submit" class="primary full big" id="signUpBtn">Create account</button>
+    <p class="switch muted">Already have an account? <button type="button" class="link inline" data-go="signin">Sign in</button></p>
+  </form>
+
+  <!-- 4. Forgot password -->
+  <form class="panel auth-view hidden" data-auth-view="reset" id="resetForm" novalidate>
+    <button type="button" class="back" data-go="signin">&larr; Back to sign in</button>
+    <h2>Reset your password</h2>
+    <p class="muted">Enter your account email and we'll send you a link to choose a new password.</p>
+    <div class="form-error hidden" role="alert"></div>
+    <div class="form-ok hidden" role="status"></div>
+    <label>Email
+      <input id="rsEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" placeholder="you@example.com" required>
+    </label>
+    <button type="submit" class="primary full big" id="resetBtn">Send reset link</button>
+  </form>
+
+</section>
+<section id="clubGate" class="panel hidden">
+  <h2>Club access</h2>
+  <p class="muted">Create your club as the organizer, or request access using your club ID.</p>
+  <label>Your name<input id="displayName" placeholder="Your name"></label>
+  <label>Club name (organizer only)<input id="newClubName" placeholder="e.g. San Pedro Pickleball Club"></label>
+  <button id="createClub" class="primary full">Create a new club</button>
+  <hr>
+  <label>Club ID<input id="clubId" placeholder="Paste club ID from organizer"></label>
+  <button id="requestJoin" class="secondary full">Request to join club</button>
+  <button id="signOut" class="link">Sign out</button>
+</section>
+<section id="pending" class="panel hidden">
+  <h2 id="pendingTitle">Request submitted</h2>
+  <p id="pendingMessage" class="muted">
+    Your club organizer needs to approve your access. Keep this app installed and sign in again later.
+  </p>
+  <button id="pendingBack" class="secondary">Check again</button>
+  <button id="signOut2" class="link">Sign out</button>
+</section>
+<section id="main" class="hidden">
+  <div class="clubbar panel"><div><strong id="clubTitle">My Club</strong><div class="muted small" id="userRole"></div></div><button id="logout" class="secondary">Sign out</button></div>
+  <nav class="tabs">
+  <button data-tab="session" class="active">Session</button>
+  <button data-tab="ranking">Ranking</button>
+  <button data-tab="players">Players</button>
+  <button data-tab="courts">Courts & Scores</button>
+  <button data-tab="history">History</button>
+  <button data-tab="admin">Club Admin</button>
+  </nav>
+  <div id="view"></div>
+</section>
+<footer>Pickleball Club Manager · Private club prototype</footer>
+</div>
+<script type="module" src="./app.js"></script>
+</body></html>
