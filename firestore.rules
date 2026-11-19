@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------
+    // Roles
+    //   organizer   = the user in clubs/{id}.adminUid. Can do everything.
+    //   scorekeeper = active member whose member doc has role 'scorekeeper'.
+    //                 Can run rounds (generate / complete), change session
+    //                 settings and add or pause players.
+    //   member      = any other active member. Can read everything and enter
+    //                 scores on the round that is in progress. Nothing else.
+    // ---------------------------------------------------------------
+
+    function signedIn() { return request.auth != null; }
+
+    function clubPath(clubId) {
+      return /databases/$(database)/documents/clubs/$(clubId);
+    }
+    function memberPath(clubId, uid) {
+      return /databases/$(database)/documents/clubs/$(clubId)/members/$(uid);
+    }
+
+    function isAdmin(clubId) {
+      return signedIn() && exists(clubPath(clubId)) &&
+        get(clubPath(clubId)).data.adminUid == request.auth.uid;
+    }
+    function isMember(clubId) {
+      return signedIn() &&
+        exists(memberPath(clubId, request.auth.uid)) &&
+        get(memberPath(clubId, request.auth.uid)).data.active == true;
+    }
+    function isScorekeeper(clubId) {
+      return isMember(clubId) &&
+        get(memberPath(clubId, request.auth.uid)).data.role == 'scorekeeper';
+    }
+
+    match /clubs/{clubId} {
+      allow create: if signedIn() && request.resource.data.adminUid == request.auth.uid;
+      allow get: if signedIn();
+      allow list: if false;
+      // The organizer can edit club details but cannot hand the club to someone else by accident.
+      allow update: if isAdmin(clubId) &&
+        request.resource.data.adminUid == resource.data.adminUid;
+      allow delete: if isAdmin(clubId);
+
+      match /members/{uid} {
+        // A person can always read their own record, even after removal,
+        // so the app can show "access removed" instead of an error.
+        allow read: if (signedIn() && request.auth.uid == uid) || isMember(clubId) || isAdmin(clubId);
+        allow create, update: if isAdmin(clubId) &&
+          request.resource.data.role in ['admin', 'scorekeeper', 'member'];
+        allow delete: if isAdmin(clubId);
+      }
+
+      match /joinRequests/{uid} {
+        allow create: if signedIn() && request.auth.uid == uid &&
+          request.resource.data.uid == uid && request.resource.data.status == 'pending';
+        // Lets a removed or previously approved person ask again (the request doc already exists).
+        allow update: if (signedIn() && request.auth.uid == uid &&
+            request.resource.data.uid == uid && request.resource.data.status == 'pending') ||
+          isAdmin(clubId);
+        allow read: if (signedIn() && request.auth.uid == uid) || isAdmin(clubId);
+        allow delete: if isAdmin(clubId);
+      }
+
+      match /state/{document} {
+        // Which top-level fields this write touches.
+        function changed() {
+          return request.resource.data.diff(resource.data).affectedKeys();
+        }
+        // Scorekeepers may run rounds but never shrink the roster or the history.
+        function keepsRosterAndHistory() {
+          return request.resource.data.players.size() >= resource.data.players.size() &&
+            request.resource.data.rounds.size() >= resource.data.rounds.size();
+        }
+        // Members may only change scores inside the round that is already running.
+        function scoringOnly() {
+          return resource.data.active != null &&
+            request.resource.data.active != null &&
+            request.resource.data.active.number == resource.data.active.number &&
+            request.resource.data.active.matches.size() == resource.data.active.matches.size();
+        }
+
+        allow read: if isMember(clubId) || isAdmin(clubId);
+        allow create, delete: if isAdmin(clubId);
+        allow update: if isAdmin(clubId)
+          || (isScorekeeper(clubId) &&
+              changed().hasOnly(['queue', 'players', 'currentSession', 'sessionRankings',
+                                 'active', 'partners', 'opponents', 'rounds',
+                                 'courts', 'format', 'scoring', 'target', 'winBy', 'updatedAt']) &&
+              keepsRosterAndHistory())
+          || (isMember(clubId) &&
+              changed().hasOnly(['active', 'updatedAt']) &&
+              scoringOnly());
+      }
+    }
+  }
+}
